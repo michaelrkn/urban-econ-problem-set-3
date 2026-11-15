@@ -90,7 +90,8 @@ export_word_table <- function(data, file_name, column_names,
 }
 
 export_scatterplot <- function(data, x, y, file_name, x_label, y_label,
-                               x_format = NULL, y_format = NULL) {
+                               x_format = NULL, y_format = NULL,
+                               color_by = NULL, color_label = NULL) {
   formats <- c("dollar", "percent")
   for (format in list(x_format, y_format)) {
     if (!is.null(format) &&
@@ -102,10 +103,28 @@ export_scatterplot <- function(data, x, y, file_name, x_label, y_label,
   plot <- ggplot2::ggplot(
     data,
     ggplot2::aes(x = .data[[x]], y = .data[[y]])
-  ) +
-    ggplot2::geom_point(na.rm = TRUE) +
-    ggplot2::geom_smooth(method = "lm", formula = y ~ x, na.rm = TRUE) +
-    ggplot2::labs(x = x_label, y = y_label) +
+  )
+
+  if (is.null(color_by)) {
+    plot <- plot +
+      ggplot2::geom_point(na.rm = TRUE) +
+      ggplot2::geom_smooth(method = "lm", formula = y ~ x, na.rm = TRUE)
+  } else {
+    plot <- plot +
+      ggplot2::geom_point(
+        ggplot2::aes(color = .data[[color_by]]),
+        na.rm = TRUE
+      ) +
+      ggplot2::geom_smooth(
+        ggplot2::aes(color = .data[[color_by]]),
+        method = "lm",
+        formula = y ~ x,
+        na.rm = TRUE
+      )
+  }
+
+  plot <- plot +
+    ggplot2::labs(x = x_label, y = y_label, color = color_label) +
     ggplot2::theme_minimal(
       base_family = "Times New Roman",
       base_size = 12

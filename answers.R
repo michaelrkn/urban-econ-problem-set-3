@@ -174,3 +174,132 @@ export_scatterplot(
   x_format = "percent",
   y_format = "percent"
 )
+
+# 3a
+
+cook_schools_sat_2023 <- read_dta('data/cook_schools_sat_2023.dta')
+prices_2022_2023 <- read_dta('data/prices_2022_2023.dta')
+
+summary_variables <- c(
+  "percent_lowinc",
+  "percent_white",
+  "percent_black",
+  "percent_hisp",
+  "percent_asian",
+  "satreadingaveragescore",
+  "satmathaveragescore"
+)
+
+school_summary <- cook_schools_sat_2023 |>
+  filter(!is.na(city)) |>
+  mutate(group = if_else(city == "Chicago", "Chicago", "Suburbs")) |>
+  tidyr::pivot_longer(
+    cols = all_of(summary_variables),
+    names_to = "measure",
+    values_to = "value"
+  ) |>
+  group_by(measure, group) |>
+  summarise(
+    mean = if (all(is.na(value))) NA_real_ else mean(value, na.rm = TRUE),
+    n = sum(!is.na(value)),
+    .groups = "drop"
+  ) |>
+  tidyr::pivot_wider(
+    names_from = group,
+    values_from = c(mean, n),
+    names_glue = "{.value}_{group}"
+  ) |>
+  mutate(
+    measure = recode(
+      measure,
+      percent_lowinc = "% Low-Income",
+      percent_white = "% White",
+      percent_black = "% Black",
+      percent_hisp = "% Hispanic",
+      percent_asian = "% Asian",
+      satreadingaveragescore = "SAT Reading",
+      satmathaveragescore = "SAT Math"
+    )
+  ) |>
+  transmute(
+    measure,
+    Chicago = mean_Chicago,
+    Suburbs = mean_Suburbs,
+    Chicago_N = n_Chicago,
+    Suburbs_N = n_Suburbs
+  ) |>
+  export_word_table(
+    file_name = "3a.docx",
+    column_names = c(
+      measure = "Measure",
+      Chicago = "Chicago Schools Mean",
+      Suburbs = "Suburbs Schools Mean",
+      Chicago_N = "Chicago N",
+      Suburbs_N = "Suburbs N"
+    ),
+    integer_columns = c("Chicago_N", "Suburbs_N"),
+    digits = 1
+  )
+
+# 3b
+
+sat_math_income_plot_data <- cook_schools_sat_2023 |>
+  filter(
+    !is.na(percent_lowinc),
+    !is.na(satmathaveragescore),
+    !is.na(city)
+  ) |>
+  mutate(
+    group = if_else(city == "Chicago", "Chicago", "Suburbs"),
+    low_income_share = percent_lowinc / 100
+  ) |>
+  export_scatterplot(
+    x = "low_income_share",
+    y = "satmathaveragescore",
+    file_name = "3b.png",
+    x_label = "% Low-Income Students",
+    y_label = "Avg SAT Math Score",
+    x_format = "percent",
+    color_by = "group",
+    color_label = "School Location"
+  )
+
+# 3c
+
+submarket_mapping <- tibble::tribble(
+  ~submarket, ~city,
+  "Schaumburg", "Schaumburg",
+  "Evanston/Skokie", "Evanston",
+  "Evanston/Skokie", "Skokie",
+  "Calumet City/Harvey", "Calumet City",
+  "Calumet City/Harvey", "Harvey"
+)
+
+submarket_sat_summary <- cook_schools_sat_2023 |>
+  inner_join(submarket_mapping, by = "city") |>
+  group_by(submarket) |>
+  summarise(
+    school_n = n(),
+    mean_sat_reading = mean(satreadingaveragescore, na.rm = TRUE),
+    mean_sat_math = mean(satmathaveragescore, na.rm = TRUE),
+  )
+
+submarket_prices <- prices_2022_2023 |>
+  filter(submarket %in% unique(submarket_mapping$submarket)) |>
+  select(submarket, median_sales_price = mediansalesprice2022q32023q2)
+
+
+prices_and_sats <- left_join(submarket_prices, submarket_sat_summary, by = "submarket") |>
+  export_word_table(
+    file_name = "3c.docx",
+    column_names = c(
+      submarket = "Housing Submarket",
+      median_sales_price = "Median Sales Price",
+      mean_sat_reading = "Mean SAT Reading",
+      mean_sat_math = "Mean SAT Math",
+      school_n = "Schools"
+    ),
+    dollar_columns = "median_sales_price",
+    integer_columns = c("mean_sat_reading", "mean_sat_math", "school_n"),
+    digits = 1
+  )
