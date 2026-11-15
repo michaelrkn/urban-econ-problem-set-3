@@ -87,3 +87,90 @@ dissimilarity_indices <- cook_stat |>
     integer_columns = "year",
     digits = 2
   )
+
+# 2a
+
+cook_stat <- cook_stat |>
+  mutate(
+    college_share = educ16 / numpers25,
+    mean_income = agghhinc / numhh,
+  )
+
+cook_stat_2010 <- cook_stat |>
+  filter(year == 2010)
+
+mean_education_income <- cook_stat_2010 |>
+  summarise(
+    across(
+      c(college_share, mean_income),
+      ~ mean(.x, na.rm = TRUE)
+    )
+  )
+
+# 2b
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "black_share",
+  y = "mean_income",
+  file_name = "2b_income_black_share.png",
+  x_label = "Black Population Share",
+  y_label = "Mean Household Income",
+  x_format = "percent",
+  y_format = "dollar"
+)
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "hisp_share",
+  y = "mean_income",
+  file_name = "2b_income_hispanic_share.png",
+  x_label = "Hispanic Population Share",
+  y_label = "Mean Household Income",
+  x_format = "percent",
+  y_format = "dollar"
+)
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "white_share",
+  y = "mean_income",
+  file_name = "2b_income_white_share.png",
+  x_label = "White Population Share",
+  y_label = "Mean Household Income",
+  x_format = "percent",
+  y_format = "dollar"
+)
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "black_share",
+  y = "college_share",
+  file_name = "2b_college_black_share.png",
+  x_label = "Black Population Share",
+  y_label = "College-Educated Share",
+  x_format = "percent",
+  y_format = "percent"
+)
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "hisp_share",
+  y = "college_share",
+  file_name = "2b_college_hispanic_share.png",
+  x_label = "Hispanic Population Share",
+  y_label = "College-Educated Share",
+  x_format = "percent",
+  y_format = "percent"
+)
+
+export_scatterplot(
+  cook_stat_2010,
+  x = "white_share",
+  y = "college_share",
+  file_name = "2b_college_white_share.png",
+  x_label = "White Population Share",
+  y_label = "College-Educated Share",
+  x_format = "percent",
+  y_format = "percent"
+)
